@@ -3,6 +3,9 @@ package edu.jsu.mcis.cs310;
 import com.github.cliftonlabs.json_simple.*;
 import com.opencsv.*;
 
+import java.io.StringReader;
+import java.util.List;
+import java.util.ArrayList;
 public class Converter {
     
     /*
@@ -73,19 +76,43 @@ public class Converter {
     
     @SuppressWarnings("unchecked")
     public static String csvToJson(String csvString) {
-        
+
         String result = "{}"; // default return value; replace later!
-        
+        JsonObject jsonResult = new JsonObject();
         try {
-        
-            // INSERT YOUR CODE HERE
-            
+            CSVParser csvParser = new CSVParserBuilder().withSeparator(',').build();
+            CSVReader csvReader = new CSVReaderBuilder(new StringReader(csvString)).withCSVParser(csvParser).build();
+
+            List<String> headers = new ArrayList<>();
+            List<JsonArray> data = new ArrayList<>();
+
+            String[] csvHeaders = csvReader.readNext();
+            if(csvHeaders != null){
+                headers = List.of(csvHeaders);
+            }
+            String[] row;
+            while ((row = csvReader.readNext()) != null){
+                JsonArray rowData = new JsonArray();
+                for(String value : row){
+                    try{
+                        int intValue = Integer.parseInt(value);
+                    }
+                    catch (NumberFormatException e) {
+                        rowData.add(value);
+                    }
+                }
+                data.add(rowData);
+            }
+
+            jsonResult.put("ProdNums", new JsonArray(headers));
+            jsonResult.put("ColHeadings", new JsonArray(headers));
+            jsonResult.put("Data", new JsonArray(data));
         }
         catch (Exception e) {
             e.printStackTrace();
         }
         
-        return result.trim();
+        return jsonResult.toJson();
         
     }
     
@@ -93,10 +120,11 @@ public class Converter {
     public static String jsonToCsv(String jsonString) {
         
         String result = ""; // default return value; replace later!
+        StringBuilder csvResult = new StringBuilder();
         
         try {
             
-            // INSERT YOUR CODE HERE
+            JsonObject jsonObject = (JsonObject) Jsoner.deserialize(jsonString);
             
         }
         catch (Exception e) {
