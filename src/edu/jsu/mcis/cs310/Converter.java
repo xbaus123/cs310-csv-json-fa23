@@ -6,6 +6,7 @@ import com.opencsv.*;
 import java.io.StringReader;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 public class Converter {
     
     /*
@@ -73,84 +74,103 @@ public class Converter {
         Exchange" lecture notes for more details, including examples.
         
     */
-    
-    @SuppressWarnings("unchecked")
-    public static String csvToJson(String csvString) {
 
-        String result = "{}"; // default return value; replace later!
+
+
+    public static String csvToJson(String csvString) {
         JsonObject jsonResult = new JsonObject();
+
         try {
+            // Create a CSV parser and reader to process the input CSV string
             CSVParser csvParser = new CSVParserBuilder().withSeparator(',').build();
             CSVReader csvReader = new CSVReaderBuilder(new StringReader(csvString)).withCSVParser(csvParser).build();
 
-            List<String> headers = new ArrayList<>();
-            List<JsonArray> data = new ArrayList<>();
+            List<String> colHeaders = new ArrayList<>(); // List to store column headers
+            List<JsonArray> data = new ArrayList<>(); // List to store data rows
+            List<String> prodNums = new ArrayList<>(); // List to store ProdNum values
 
+            // Read the first row of CSV as column headers
             String[] csvHeaders = csvReader.readNext();
-            if(csvHeaders != null){
-                headers = List.of(csvHeaders);
+            if (csvHeaders != null) {
+                colHeaders = Arrays.asList(csvHeaders);
             }
+
             String[] row;
-            while ((row = csvReader.readNext()) != null){
+            while ((row = csvReader.readNext()) != null) {
                 JsonArray rowData = new JsonArray();
-                for(String value : row){
-                    try{
+                prodNums.add(row[0]); // Extract and store the first value as ProdNum
+
+                for (int i = 0; i < row.length; i++) {
+                    String value = row[i];
+                    try {
                         int intValue = Integer.parseInt(value);
-                    }
-                    catch (NumberFormatException e) {
+                        rowData.add(intValue);
+                    } catch (NumberFormatException e) {
                         rowData.add(value);
                     }
                 }
-                data.add(rowData);
+                data.add(rowData); // Add the processed row data to the list
             }
 
-            jsonResult.put("ProdNums", new JsonArray(headers));
-            jsonResult.put("ColHeadings", new JsonArray(headers));
+            // Create a JSON object with the collected data
+            jsonResult.put("ProdNums", new JsonArray(prodNums));
+            jsonResult.put("ColHeadings", new JsonArray(colHeaders));
             jsonResult.put("Data", new JsonArray(data));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        
-        return jsonResult.toJson();
-        
+
+        return jsonResult.toJson(); // Convert the JSON object to a string and return it
     }
-    
-    @SuppressWarnings("unchecked")
+
+
+
+
+
+
     public static String jsonToCsv(String jsonString) {
-        
-        String result = ""; // default return value; replace later!
         StringBuilder csvResult = new StringBuilder();
-        
+
         try {
-            
+            // Deserialize the input JSON string
             JsonObject jsonObject = (JsonObject) Jsoner.deserialize(jsonString);
 
+            // Extract column headers from the JSON
             JsonArray headersArray = (JsonArray) jsonObject.get("ColHeadings");
-
             List<String> headers = new ArrayList<>();
-
-            for(Object header : headersArray){
+            for (Object header : headersArray) {
                 headers.add(header.toString());
             }
-            csvResult.append(String.join(",", headers)).append("\n");
 
+            // Build the CSV header row
+            csvResult.append("\"").append(String.join("\",\"", headers)).append("\"\n");
+
+            // Extract data and ProdNums from the JSON
             JsonArray dataArray = (JsonArray) jsonObject.get("Data");
-            for(Object dataRow : dataArray){
-                JsonArray rowArray = (JsonArray) dataRow;
+            JsonArray prodNums = (JsonArray) jsonObject.get("ProdNums");
+
+            for (int i = 0; i < dataArray.size(); i++) {
+                JsonArray rowArray = (JsonArray) dataArray.get(i);
                 List<String> row = new ArrayList<>();
-                for(Object cell : rowArray){
-                    row.add(cell.toString());
+
+                // Add ProdNum as the first column in each row
+                row.add("\"" + prodNums.get(i).toString() + "\"");
+
+                // Add cell values to the row
+                for (Object cell : rowArray) {
+                    row.add("\"" + cell.toString() + "\"");
                 }
+
+                // Append the row to the CSV result
                 csvResult.append(String.join(",", row)).append("\n");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        
-        return csvResult.toString();
-        
+
+        return csvResult.toString(); // Return the CSV result as a string
     }
-    
+
+
+
 }
