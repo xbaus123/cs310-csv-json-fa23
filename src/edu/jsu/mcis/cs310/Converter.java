@@ -125,13 +125,31 @@ public class Converter {
         try {
             
             JsonObject jsonObject = (JsonObject) Jsoner.deserialize(jsonString);
-            
+
+            JsonArray headersArray = (JsonArray) jsonObject.get("ColHeadings");
+
+            List<String> headers = new ArrayList<>();
+
+            for(Object header : headersArray){
+                headers.add(header.toString());
+            }
+            csvResult.append(String.join(",", headers)).append("\n");
+
+            JsonArray dataArray = (JsonArray) jsonObject.get("Data");
+            for(Object dataRow : dataArray){
+                JsonArray rowArray = (JsonArray) dataRow;
+                List<String> row = new ArrayList<>();
+                for(Object cell : rowArray){
+                    row.add(cell.toString());
+                }
+                csvResult.append(String.join(",", row)).append("\n");
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
         }
         
-        return result.trim();
+        return csvResult.toString();
         
     }
     
